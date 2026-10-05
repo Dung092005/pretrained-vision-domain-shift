@@ -46,6 +46,8 @@ Validation found 15,588 images and no corrupted images. After removing 412 byte-
 
 The same class mapping and data partitions are used for all four training configurations. Only the Real-World training and validation subsets are used to train models and select checkpoints; target-domain training and validation subsets are not used.
 
+See [`DATA.md`](DATA.md) for the official dataset URL, exact version, partition procedure, preprocessing, and notebook sections required to reproduce the experiment data.
+
 ## Data Preparation
 
 The preparation pipeline:
@@ -140,6 +142,7 @@ pretrained-vision-domain-shift/
 │   └── config.toml
 ├── OfficeHome_DomainShift_Colab_T4.ipynb
 ├── README.md
+├── DATA.md
 ├── PROVENANCE.md
 ├── requirements.txt
 ├── demo/
@@ -150,7 +153,6 @@ pretrained-vision-domain-shift/
 │   └── requirements.txt
 ├── figures/
 │   ├── accuracy_Real_World.png
-│   ├── domain_examples.png
 │   ├── domain_gap_Real_World.png
 │   └── ...
 ├── results/
@@ -159,8 +161,9 @@ pretrained-vision-domain-shift/
 │   ├── split_manifest.csv
 │   └── ...
 ├── report/
-│   ├── project_report.pdf
-│   └── project_report.tex
+│   ├── figures/
+│   ├── report.pdf
+│   └── report.tex
 └── scripts/
     └── verify_results.py
 ```
@@ -192,6 +195,20 @@ python scripts/verify_results.py
 ```
 
 The script recomputes accuracy and macro-F1 from all 16 prediction files and checks the class mapping, test membership, domain differences, selected checkpoint epochs, and saved data partitions. It does not retrain the models or download the dataset.
+
+## Project Report
+
+The English project report is available as a [PDF](report/report.pdf), with its [LaTeX source](report/report.tex) and figure files in `report/figures/`.
+
+Compile from the repository root using a LaTeX installation with the required packages:
+
+```bash
+cd report
+pdflatex report.tex
+pdflatex report.tex
+```
+
+The second pass resolves citations and cross-references.
 
 ## Team Members
 
@@ -225,3 +242,4 @@ We worked on this project together, but each member focused more on a different 
 - [Torchvision ResNet50 documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.resnet50.html)
 
 Office-Home is provided under the dataset authors' terms for noncommercial research and education. Third-party data and pretrained model weights retain their respective terms.
+
