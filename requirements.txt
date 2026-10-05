@@ -1,0 +1,15 @@
+# Core pair observed in the completed Colab run; recorded build: +cu130.
+# Colab users should run the notebook installation cell instead.
+torch==2.11.0
+torchvision==0.26.0
+huggingface_hub
+pyarrow
+requests
+pyyaml
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+tqdm
+pillow
