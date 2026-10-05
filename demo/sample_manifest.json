@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "source": {
+    "dataset": "flwrlabs/office-home",
+    "dataset_revision": "2a083645e3177afbd91ba4fa2651238f8994d335",
+    "config": "default",
+    "split": "train",
+    "rows_endpoint": "https://datasets-server.huggingface.co/rows",
+    "description": "Each entry identifies one embedded image row from the public Office-Home mirror. The app resolves a fresh signed image URL at runtime and verifies the returned row label and domain before use."
+  },
+  "selection": "One deterministic archived held-out test example per class and domain, selected as the lexical first retained relative path in results/split_manifest.csv.",
+  "classes": {
+    "Laptop": [
+      {"domain": "Real_World", "label": 32, "relative_path": "Real_World/Laptop/011715.jpg", "row_index": 11715, "split": "test"},
+      {"domain": "Product", "label": 32, "relative_path": "Product/Laptop/007276.jpg", "row_index": 7276, "split": "test"},
+      {"domain": "Art", "label": 32, "relative_path": "Art/Laptop/000382.jpg", "row_index": 382, "split": "test"},
+      {"domain": "Clipart", "label": 32, "relative_path": "Clipart/Laptop/002523.jpg", "row_index": 2523, "split": "test"}
+    ],
+    "Mug": [
+      {"domain": "Real_World", "label": 37, "relative_path": "Real_World/Mug/011437.jpg", "row_index": 11437, "split": "test"},
+      {"domain": "Product", "label": 37, "relative_path": "Product/Mug/006944.jpg", "row_index": 6944, "split": "test"},
+      {"domain": "Art", "label": 37, "relative_path": "Art/Mug/000008.jpg", "row_index": 8, "split": "test"},
+      {"domain": "Clipart", "label": 37, "relative_path": "Clipart/Mug/002690.jpg", "row_index": 2690, "split": "test"}
+    ],
+    "Bike": [
+      {"domain": "Real_World", "label": 4, "relative_path": "Real_World/Bike/012157.jpg", "row_index": 12157, "split": "test"},
+      {"domain": "Product", "label": 4, "relative_path": "Product/Bike/007376.jpg", "row_index": 7376, "split": "test"},
+      {"domain": "Art", "label": 4, "relative_path": "Art/Bike/000054.jpg", "row_index": 54, "split": "test"},
+      {"domain": "Clipart", "label": 4, "relative_path": "Clipart/Bike/002445.jpg", "row_index": 2445, "split": "test"}
+    ],
+    "Bottle": [
+      {"domain": "Real_World", "label": 5, "relative_path": "Real_World/Bottle/011410.jpg", "row_index": 11410, "split": "test"},
+      {"domain": "Product", "label": 5, "relative_path": "Product/Bottle/007912.jpg", "row_index": 7912, "split": "test"},
+      {"domain": "Art", "label": 5, "relative_path": "Art/Bottle/000069.jpg", "row_index": 69, "split": "test"},
+      {"domain": "Clipart", "label": 5, "relative_path": "Clipart/Bottle/002437.jpg", "row_index": 2437, "split": "test"}
+    ],
+    "Chair": [
+      {"domain": "Real_World", "label": 10, "relative_path": "Real_World/Chair/011587.jpg", "row_index": 11587, "split": "test"},
+      {"domain": "Product", "label": 10, "relative_path": "Product/Chair/007295.jpg", "row_index": 7295, "split": "test"},
+      {"domain": "Art", "label": 10, "relative_path": "Art/Chair/000485.jpg", "row_index": 485, "split": "test"},
+      {"domain": "Clipart", "label": 10, "relative_path": "Clipart/Chair/003486.jpg", "row_index": 3486, "split": "test"}
+    ],
+    "Keyboard": [
+      {"domain": "Real_World", "label": 29, "relative_path": "Real_World/Keyboard/011688.jpg", "row_index": 11688, "split": "test"},
+      {"domain": "Product", "label": 29, "relative_path": "Product/Keyboard/007915.jpg", "row_index": 7915, "split": "test"},
+      {"domain": "Art", "label": 29, "relative_path": "Art/Keyboard/000535.jpg", "row_index": 535, "split": "test"},
+      {"domain": "Clipart", "label": 29, "relative_path": "Clipart/Keyboard/003439.jpg", "row_index": 3439, "split": "test"}
+    ],
+    "Monitor": [
+      {"domain": "Real_World", "label": 34, "relative_path": "Real_World/Monitor/013550.jpg", "row_index": 13550, "split": "test"},
+      {"domain": "Product", "label": 34, "relative_path": "Product/Monitor/007787.jpg", "row_index": 7787, "split": "test"},
+      {"domain": "Art", "label": 34, "relative_path": "Art/Monitor/000438.jpg", "row_index": 438, "split": "test"},
+      {"domain": "Clipart", "label": 34, "relative_path": "Clipart/Monitor/002792.jpg", "row_index": 2792, "split": "test"}
+    ],
+    "Scissors": [
+      {"domain": "Real_World", "label": 50, "relative_path": "Real_World/Scissors/011235.jpg", "row_index": 11235, "split": "test"},
+      {"domain": "Product", "label": 50, "relative_path": "Product/Scissors/007105.jpg", "row_index": 7105, "split": "test"},
+      {"domain": "Art", "label": 50, "relative_path": "Art/Scissors/000949.jpg", "row_index": 949, "split": "test"},
+      {"domain": "Clipart", "label": 50, "relative_path": "Clipart/Scissors/002446.jpg", "row_index": 2446, "split": "test"}
+    ]
+  }
+}
