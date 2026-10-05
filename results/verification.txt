@@ -1,0 +1,7 @@
+PASS: 15,176 retained images; 65 classes; four domains; four configurations; 16 evaluations.
+Accuracy and macro-F1 recomputed from prediction CSVs match saved results.
+Test membership, class labels, accuracy differences, and selected checkpoints match saved records.
+All 59 uploaded archive entries are preserved byte-for-byte.
+Training code and completed numeric notebook outputs are retained.
+The report was compiled from LaTeX and both PDF pages were visually inspected.
+No additional training or GPU inference was performed during packaging.

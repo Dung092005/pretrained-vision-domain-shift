@@ -1,0 +1,37 @@
+{
+  "dataset_repo": "flwrlabs/office-home",
+  "dataset_revision": "2a083645e3177afbd91ba4fa2651238f8994d335",
+  "protocol": "source_only_v1",
+  "source_domains": [
+    "Real_World"
+  ],
+  "models": [
+    "resnet18",
+    "resnet50"
+  ],
+  "modes": [
+    "linear_probe",
+    "finetune_last_block"
+  ],
+  "seeds": [
+    42
+  ],
+  "split_seed": 2026,
+  "batch_size": 32,
+  "epochs": {
+    "linear_probe": 15,
+    "finetune_last_block": 20
+  },
+  "num_workers": 2,
+  "patience": 5,
+  "head_lr": 0.001,
+  "backbone_lr": 0.0001,
+  "weight_decay": 0.0001,
+  "smoke_test": false,
+  "check_exact_duplicates": true,
+  "manifest_digest": "7a80ad97bd73c5ff9d42a8142e63683900a8233422f8b55d5f5f120c0dc63031",
+  "torch_version": "2.11.0+cu130",
+  "torchvision_version": "0.26.0+cu130",
+  "preprocessing": "resize256_centercrop224_imagenet;train_randomcrop_flip",
+  "batchnorm": "running_stats_frozen"
+}

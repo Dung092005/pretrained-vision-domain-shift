@@ -1,0 +1,5 @@
+source,model,mode,seed,test_domain,best_epoch,best_val_macro_f1,loss,accuracy,macro_f1,n,accuracy_drop_pp,experiment
+Real_World,resnet18,finetune_last_block,42,Art,4,0.751985813682387,2.668296583744038,0.4899713467048711,0.4422890395261664,349,25.81085304072641,Real_World__resnet18__finetune_last_block__seed42
+Real_World,resnet18,finetune_last_block,42,Clipart,4,0.751985813682387,3.7767191782086256,0.33746130030959753,0.3160211434663383,646,41.061857680253766,Real_World__resnet18__finetune_last_block__seed42
+Real_World,resnet18,finetune_last_block,42,Product,4,0.751985813682387,1.6163288295822615,0.6068111455108359,0.5827565963086655,646,14.126873160129927,Real_World__resnet18__finetune_last_block__seed42
+Real_World,resnet18,finetune_last_block,42,Real_World,4,0.751985813682387,0.9016541040712788,0.7480798771121352,0.7230012477591136,651,0.0,Real_World__resnet18__finetune_last_block__seed42
