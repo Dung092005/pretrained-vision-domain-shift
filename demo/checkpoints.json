@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "storage": {
+    "type": "Public Google Drive archive with HTTP range support",
+    "archive_name": "officehome_checkpoints.zip",
+    "archive_size_bytes": 748826344,
+    "file_id": "1QLDEiS36JromDOS6n4whtt9hkxKvbgip",
+    "url": "https://drive.usercontent.google.com/download?id=1QLDEiS36JromDOS6n4whtt9hkxKvbgip&export=download&confirm=t",
+    "note": "Each listed best.pt member is stored uncompressed in the archive, so the demo downloads only that member's byte range."
+  },
+  "checkpoints": {
+    "resnet18_linear_probe": {
+      "architecture": "resnet18",
+      "mode": "linear_probe",
+      "source": "Real_World",
+      "seed": 42,
+      "best_epoch": 8,
+      "best_val_macro_f1": 0.7933931804489333,
+      "config_hash": "5765dc922429",
+      "url": "https://drive.usercontent.google.com/download?id=1QLDEiS36JromDOS6n4whtt9hkxKvbgip&export=download&confirm=t",
+      "archive_member": "Real_World__resnet18__linear_probe__seed42/best.pt",
+      "range_start": 157281514,
+      "size_bytes": 44915403,
+      "sha256": "7cc200cb58cb26f18c07dcf2c668e6de2246138470d23dd9d3ddf457b9731b7a"
+    },
+    "resnet18_finetune_last_block": {
+      "architecture": "resnet18",
+      "mode": "finetune_last_block",
+      "source": "Real_World",
+      "seed": 42,
+      "best_epoch": 4,
+      "best_val_macro_f1": 0.751985813682387,
+      "config_hash": "5765dc922429",
+      "url": "https://drive.usercontent.google.com/download?id=1QLDEiS36JromDOS6n4whtt9hkxKvbgip&export=download&confirm=t",
+      "archive_member": "Real_World__resnet18__finetune_last_block__seed42/best.pt",
+      "range_start": 87,
+      "size_bytes": 44915403,
+      "sha256": "f42d53f26ae8d8b2d82321d7188a8c93ab0ac7a01ff10260c8833d63c97c1b87"
+    },
+    "resnet50_linear_probe": {
+      "architecture": "resnet50",
+      "mode": "linear_probe",
+      "source": "Real_World",
+      "seed": 42,
+      "best_epoch": 14,
+      "best_val_macro_f1": 0.8377871064247012,
+      "config_hash": "5765dc922429",
+      "url": "https://drive.usercontent.google.com/download?id=1QLDEiS36JromDOS6n4whtt9hkxKvbgip&export=download&confirm=t",
+      "archive_member": "Real_World__resnet50__linear_probe__seed42/best.pt",
+      "range_start": 557984952,
+      "size_bytes": 94873791,
+      "sha256": "029beda16fe3e26991d1e39ad1c03fb5e876bd2294e8fe9134b3ec0c541854ba"
+    },
+    "resnet50_finetune_last_block": {
+      "architecture": "resnet50",
+      "mode": "finetune_last_block",
+      "source": "Real_World",
+      "seed": 42,
+      "best_epoch": 12,
+      "best_val_macro_f1": 0.812998639612383,
+      "config_hash": "5765dc922429",
+      "url": "https://drive.usercontent.google.com/download?id=1QLDEiS36JromDOS6n4whtt9hkxKvbgip&export=download&confirm=t",
+      "archive_member": "Real_World__resnet50__finetune_last_block__seed42/best.pt",
+      "range_start": 247400663,
+      "size_bytes": 94873791,
+      "sha256": "651c47024484784d431345633b5943618df53ccf4428341eb711beeb499fe62e"
+    }
+  }
+}
