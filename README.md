@@ -4,6 +4,12 @@ This project studies how ImageNet-pretrained computer vision models behave when 
 
 The experiment is a custom source-only domain generalization study with held-out test sets. It is not the standard Office-Home domain adaptation benchmark.
 
+## Live Demo
+
+Streamlit demo: _deployment link pending_.
+
+The demo provides an interactive view of the experiment results and, when checkpoints are available, image-level inference. Run it locally from the repository root with `streamlit run demo/app.py`.
+
 ## Project Idea
 
 We use `Real-World` as the source domain for training and model selection. The selected model is evaluated on four domains:
@@ -130,11 +136,17 @@ These observations apply to this experiment, fixed split, and single training se
 
 ```text
 pretrained-vision-domain-shift/
+├── .streamlit/
+│   └── config.toml
 ├── OfficeHome_DomainShift_Colab_T4.ipynb
 ├── README.md
 ├── PROVENANCE.md
 ├── CONTRIBUTING.md
 ├── requirements.txt
+├── demo/
+│   ├── app.py
+│   ├── inference.py
+│   └── requirements.txt
 ├── figures/
 │   ├── accuracy_Real_World.png
 │   ├── domain_examples.png
