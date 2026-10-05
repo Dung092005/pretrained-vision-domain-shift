@@ -6,9 +6,9 @@ The experiment is a custom source-only domain generalization study with held-out
 
 ## Live Demo
 
-Streamlit demo: _deployment link pending_.
+[Open the Streamlit demo](https://pretrained-vision-domain-shift.streamlit.app/).
 
-The demo provides an interactive view of the experiment results and, when checkpoints are available, image-level inference. Run it locally from the repository root with `streamlit run demo/app.py`.
+The interactive demo runs the trained ResNet18 and ResNet50 configurations, compares linear probing with partial fine-tuning, and shows how predictions change across Office-Home image domains. Checkpoints are downloaded lazily from the supplementary archive and verified before inference; they are not stored in Git.
 
 ## Project Idea
 
@@ -141,11 +141,12 @@ pretrained-vision-domain-shift/
 ├── OfficeHome_DomainShift_Colab_T4.ipynb
 ├── README.md
 ├── PROVENANCE.md
-├── CONTRIBUTING.md
 ├── requirements.txt
 ├── demo/
 │   ├── app.py
 │   ├── inference.py
+│   ├── checkpoints.json
+│   ├── sample_manifest.json
 │   └── requirements.txt
 ├── figures/
 │   ├── accuracy_Real_World.png
