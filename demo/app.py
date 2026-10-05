@@ -138,6 +138,22 @@ def cached_sample_specs() -> dict[str, dict[str, SampleSpec]]:
     return load_sample_specs(SAMPLE_MANIFEST_PATH)
 
 
+def validate_sample_labels(
+    samples: Mapping[str, Mapping[str, SampleSpec]], class_names: Sequence[str]
+) -> None:
+    class_to_idx = {name: index for index, name in enumerate(class_names)}
+    for class_name, by_domain in samples.items():
+        if class_name not in class_to_idx:
+            raise ValueError(f"Sample manifest contains an unknown class: {class_name}")
+        expected_label = class_to_idx[class_name]
+        for domain, sample in by_domain.items():
+            if sample.label != expected_label:
+                raise ValueError(
+                    f"Sample label mismatch for {class_name}/{domain}: "
+                    f"expected {expected_label}, got {sample.label}."
+                )
+
+
 def initialise_state() -> None:
     st.session_state.setdefault("playground_run", None)
     st.session_state.setdefault("comparison_run", None)
@@ -823,6 +839,7 @@ def render_app() -> None:
         class_names = load_class_names()
         specs = cached_checkpoint_specs()
         samples = cached_sample_specs()
+        validate_sample_labels(samples, class_names)
     except (FileNotFoundError, ValueError, pd.errors.ParserError) as error:
         st.error(f"The interactive demo could not load its archived metadata: {error}", icon=":material/error:")
         st.stop()
