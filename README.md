@@ -1,20 +1,35 @@
 # Pretrained Vision Models Across Image Domains
 
-Evaluate how ImageNet-pretrained ResNet18 and ResNet50 transfer from real-world photographs to product photographs, artistic depictions, and clipart. The experiment uses the 65 shared classes in Office-Home and compares a frozen backbone with fine-tuning of the final residual block.
+This project studies how ImageNet-pretrained computer vision models behave when the visual style of the input images changes. We train each model only on real-world photographs from Office-Home, then evaluate the same trained model on photographs, product images, artistic images, and clipart.
 
-## Experiment
+The experiment is a custom source-only domain generalization study with held-out test sets. It is not the standard Office-Home domain adaptation benchmark.
 
-- **Source domain:** Real-World. Only its training subset updates model parameters.
-- **Model selection:** highest source-validation macro-F1, with early stopping after five epochs without improvement.
-- **Test domains:** Real-World, Product, Art, and Clipart. Target training/validation subsets are unused.
-- **Configurations:** two architectures × two training strategies = four runs.
-- **Protocol:** custom source-only domain generalization with held-out partitions; not the standard Office-Home domain adaptation benchmark.
+## Project Idea
+
+We use `Real-World` as the source domain for training and model selection. The selected model is evaluated on four domains:
+
+- Real-World
+- Product
+- Art
+- Clipart
+
+We compare two ImageNet-pretrained architectures:
+
+- ResNet18
+- ResNet50
+
+Each architecture is trained in two ways:
+
+- **Linear probing:** only the new classification head is trained.
+- **Fine-tuning:** the final residual block (`layer4`) and classification head are trained.
+
+This setup lets us compare same-domain performance with performance after a change in image domain.
 
 ## Dataset
 
-Office-Home is downloaded automatically from the public [Flower Labs mirror](https://huggingface.co/datasets/flwrlabs/office-home), pinned to revision `2a083645e3177afbd91ba4fa2651238f8994d335`. Archive downloads, authentication, and manual uploads are not required. Shard sizes and SHA-256 checksums are verified.
+We use the [Office-Home dataset](https://www.hemanthdv.org/officeHomeDataset.html), which contains 65 shared object classes across Art, Clipart, Product, and Real-World. The notebook downloads the data from the public [Flower Labs mirror](https://huggingface.co/datasets/flwrlabs/office-home), pinned to revision `2a083645e3177afbd91ba4fa2651238f8994d335`.
 
-Validation found 15,588 images, no corrupted images, and 412 byte-identical duplicates. After deduplication, 15,176 images remain. Each domain/class is partitioned approximately 70/15/15 with split seed 2026. The same splits are used by all configurations.
+Validation found 15,588 images and no corrupted images. After removing 412 byte-identical duplicates, 15,176 images remained. Each domain and class was split approximately 70/15/15 using split seed 2026.
 
 | Domain | Train | Validation | Test |
 |---|---:|---:|---:|
@@ -23,109 +38,164 @@ Validation found 15,588 images, no corrupted images, and 412 byte-identical dupl
 | Product | 2,985 | 646 | 646 |
 | Real-World | 3,030 | 651 | 651 |
 
-## Run on Colab
+The same class mapping and data partitions are used for all four training configurations. Only the Real-World training and validation subsets are used to train models and select checkpoints; target-domain training and validation subsets are not used.
 
-1. Open [the executed notebook](OfficeHome_DomainShift_Colab_T4.ipynb) in Google Colab, using **File → Upload notebook** or Colab's GitHub import.
-2. Select **Runtime → Change runtime type → T4 GPU**.
-3. Run the cells in order, or select **Run all**.
+## Data Preparation
 
-The notebook installs its additional dependencies and retains Colab's existing torch/torchvision installation. It downloads and caches the dataset, trains each configuration, evaluates all domains, and exports a compact results ZIP. A new run trains models unless matching local recovery checkpoints already exist.
+The preparation pipeline:
 
-Results and checkpoints are stored under `/content/OfficeHome_DomainShift_T4/`. The final ZIP excludes checkpoints. Runtime-local files are lost when the Colab runtime is deleted. The repository includes the completed metrics and predictions but no model checkpoints or dataset images.
+1. validates the downloaded images;
+2. removes byte-identical duplicates using SHA-256 hashes;
+3. creates class-stratified train, validation, and test partitions within each domain;
+4. resizes and crops images for the pretrained ResNet input size; and
+5. normalizes images with ImageNet statistics.
 
-If a DataLoader worker-cleanup warning appears and execution continues, it does not itself indicate a failed run. For a fresh run, set `NUM_WORKERS = 0` before executing the subsequent cells to use single-process loading. The recorded run used two workers. Worker count is included in the configuration fingerprint, so changing it and recreating the output configuration creates a separate run directory.
+Training images use a random resized crop to `224 × 224` with scale `0.7–1.0` and random horizontal flipping. Validation and test images are resized so the shorter edge is 256 pixels, then center-cropped to `224 × 224`.
 
-## Model checkpoints and large files
+## Models
 
-Supplementary files are available in the [Google Drive folder](https://drive.google.com/drive/folders/1BwltTDh_qRiF26FS5loaZozat-fKJAqY?usp=sharing). Use this folder to access model checkpoints and other large artifacts stored outside this repository.
+The experiment uses torchvision's ResNet18 and ResNet50 with `IMAGENET1K_V1` pretrained weights. The original classification layer is replaced with a new linear layer for the 65 Office-Home classes.
 
-For checkpoint archives, `best.pt` is intended for evaluation and inference, while `last.pt` stores the training state for resuming a run. Availability depends on the files uploaded to the folder.
+BatchNorm running statistics remain fixed in both training strategies.
 
-## Training settings
+## Training
+
+For **linear probing**, the pretrained backbone is frozen and only the classification head is updated.
+
+For **fine-tuning**, `layer4` and the classification head are updated while the earlier backbone layers remain frozen.
 
 | Setting | Value |
 |---|---|
-| Pretrained weights | `IMAGENET1K_V1` for both architectures |
-| Input | 224 × 224, ImageNet normalization |
-| Training augmentation | Random resized crop, scale 0.7–1.0; horizontal flip |
-| Validation/test preprocessing | Resize shorter edge to 256; center crop to 224 |
-| Linear probe | Train classification head only |
-| Partial fine-tuning | Train `layer4` and classification head |
-| BatchNorm | Running statistics fixed in both modes |
-| Optimizer / loss | AdamW / cross-entropy |
-| Head / block learning rate | 0.001 / 0.0001 |
+| Optimizer | AdamW |
+| Loss | Cross-entropy |
+| Head learning rate | 0.001 |
+| `layer4` learning rate | 0.0001 |
 | Weight decay | 0.0001 |
 | Scheduler | Cosine annealing |
 | Gradient clipping | Maximum norm 1.0 |
 | Batch size | 32 |
-| Maximum epochs | 15 linear probe; 20 partial fine-tuning |
+| Maximum epochs | 15 for linear probing; 20 for fine-tuning |
+| Early stopping | 5 epochs without validation macro-F1 improvement |
 | Training seed | 42 |
-| Precision | Mixed precision, FP16 autocast |
+| Precision | FP16 mixed precision |
 
-## Test results
+The checkpoint with the highest Real-World validation macro-F1 is used for final evaluation.
+
+## Evaluation
+
+We evaluate each selected checkpoint using:
+
+- **Accuracy:** the proportion of correctly classified test images.
+- **Macro-F1:** the average of the 65 class-level F1 scores, giving each class equal weight.
+
+The difference between Real-World accuracy and each target-domain accuracy is reported in percentage points to show the observed source-to-target performance change.
+
+## Results
 
 ### Accuracy
 
 | Model | Training strategy | Real-World | Product | Art | Clipart |
 |---|---|---:|---:|---:|---:|
-| resnet18 | Linear probe | 79.42% | 67.34% | 55.59% | 36.22% |
-| resnet18 | Fine-tune last block | 74.81% | 60.68% | 49.00% | 33.75% |
-| resnet50 | Linear probe | 82.03% | 72.91% | 62.75% | 37.15% |
-| resnet50 | Fine-tune last block | 82.64% | 71.83% | 61.60% | 40.87% |
+| ResNet18 | Linear probe | 79.42% | 67.34% | 55.59% | 36.22% |
+| ResNet18 | Fine-tune last block | 74.81% | 60.68% | 49.00% | 33.75% |
+| ResNet50 | Linear probe | 82.03% | 72.91% | 62.75% | 37.15% |
+| ResNet50 | Fine-tune last block | 82.64% | 71.83% | 61.60% | 40.87% |
 
 ### Macro-F1
 
 | Model | Training strategy | Real-World | Product | Art | Clipart |
 |---|---|---:|---:|---:|---:|
-| resnet18 | Linear probe | 0.7671 | 0.6550 | 0.5182 | 0.3345 |
-| resnet18 | Fine-tune last block | 0.7230 | 0.5828 | 0.4423 | 0.3160 |
-| resnet50 | Linear probe | 0.7954 | 0.7150 | 0.5898 | 0.3837 |
-| resnet50 | Fine-tune last block | 0.8109 | 0.7042 | 0.5781 | 0.4372 |
+| ResNet18 | Linear probe | 0.7671 | 0.6550 | 0.5182 | 0.3345 |
+| ResNet18 | Fine-tune last block | 0.7230 | 0.5828 | 0.4423 | 0.3160 |
+| ResNet50 | Linear probe | 0.7954 | 0.7150 | 0.5898 | 0.3837 |
+| ResNet50 | Fine-tune last block | 0.8109 | 0.7042 | 0.5781 | 0.4372 |
 
-Each table reports one seed on fixed test partitions. The full-precision values, selected epochs, sample counts, losses, and domain accuracy differences are in [results_all.csv](results/results_all.csv). Accuracy differences are measured in **percentage points**, not relative percentages. With one seed, the standard deviation columns in `summary.csv` are undefined (`NaN`).
-
-### Findings
-
-- ResNet50 has higher test accuracy than ResNet18 for both corresponding training strategies across all four domains.
-- Clipart has the lowest test accuracy in every configuration. ResNet50 linear probe drops from 82.03% on Real-World to 37.15% on Clipart, a 44.88 percentage-point difference.
-- ResNet18 fine-tuning lowers accuracy in every domain compared with its linear probe.
-- ResNet50 fine-tuning improves Clipart accuracy by 3.72 percentage points and Real-World accuracy by 0.61 points, while reducing Art and Product accuracy by 1.15 and 1.08 points.
-- These measurements do not establish the cause of the changes or statistical significance. Fine-tuning does not consistently improve cross-domain performance under this configuration.
+These tables report one training seed on fixed test partitions. Full-precision metrics, selected epochs, losses, sample counts, and domain differences are available in [`results/results_all.csv`](results/results_all.csv).
 
 ![Accuracy by domain](figures/accuracy_Real_World.png)
 
 ![Source-to-target accuracy differences](figures/domain_gap_Real_World.png)
 
-## Verify the saved results without a GPU
+## What We Observed
 
-Install `numpy`, `pandas`, and `scikit-learn`, then run from the repository root:
+- Performance drops when the models are evaluated outside the Real-World source domain.
+- Clipart is the most difficult domain in this experiment.
+- ResNet50 performs better than ResNet18 in the corresponding comparisons across all four domains.
+- Fine-tuning does not always improve cross-domain performance.
+- ResNet50 fine-tuning improves Clipart accuracy by 3.72 percentage points, while ResNet18 fine-tuning performs worse than its linear probe on every domain in this experiment.
+
+These observations apply to this experiment, fixed split, and single training seed. They should not be treated as universal conclusions about the architectures or domains.
+
+## Repository Structure
+
+```text
+pretrained-vision-domain-shift/
+├── OfficeHome_DomainShift_Colab_T4.ipynb
+├── README.md
+├── PROVENANCE.md
+├── CONTRIBUTING.md
+├── requirements.txt
+├── figures/
+│   ├── accuracy_Real_World.png
+│   ├── domain_examples.png
+│   ├── domain_gap_Real_World.png
+│   └── ...
+├── results/
+│   ├── config.json
+│   ├── results_all.csv
+│   ├── split_manifest.csv
+│   └── ...
+├── report/
+│   ├── project_report.pdf
+│   └── project_report.tex
+└── scripts/
+    └── verify_results.py
+```
+
+## Running the Project
+
+The completed notebook is designed for Google Colab:
+
+1. Open [`OfficeHome_DomainShift_Colab_T4.ipynb`](OfficeHome_DomainShift_Colab_T4.ipynb) in Colab using **File → Upload notebook** or Colab's GitHub import.
+2. Select **Runtime → Change runtime type → T4 GPU**.
+3. Run the cells in order, or choose **Runtime → Run all**.
+
+The notebook installs its additional dependencies, downloads and validates Office-Home, trains the four configurations, evaluates all four domains, and exports a compact result archive. A new run trains the models unless matching recovery checkpoints already exist in the Colab runtime.
+
+Runtime files are stored under `/content/OfficeHome_DomainShift_T4/`. The exported result archive excludes checkpoints, and Colab-local files disappear when the runtime is deleted. The repository contains the completed metrics and predictions but does not include the dataset or model checkpoints.
+
+If a DataLoader worker-cleanup warning appears but execution continues, it does not by itself indicate a failed run. For a fresh run, `NUM_WORKERS` can be set to `0` before later cells are executed. The archived run used two workers; changing this setting produces a different configuration fingerprint.
+
+Supplementary checkpoints and large artifacts, when available, are stored in the [project Google Drive folder](https://drive.google.com/drive/folders/1BwltTDh_qRiF26FS5loaZozat-fKJAqY?usp=sharing). In a checkpoint archive, `best.pt` is intended for evaluation and `last.pt` contains the state used to resume training.
+
+For a separate local environment, `requirements.txt` records the main packages and the PyTorch/torchvision versions observed in the completed Colab run. The recorded build used CUDA 13.0; choose the PyTorch wheel appropriate for the local system. Colab users should use the notebook's installation cell.
+
+## Verify Results
+
+The archived predictions can be checked without a GPU or model checkpoints. Install `numpy`, `pandas`, and `scikit-learn`, then run from the repository root:
 
 ```bash
 python scripts/verify_results.py
 ```
 
-The script recomputes accuracy and macro-F1 from all 16 prediction files, checks class mappings, test-set membership, domain differences, validation-selected checkpoints, and dataset partitions. It does not train models or download data.
-
-For a separate training environment, `requirements.txt` records the core PyTorch/torchvision pair observed in the completed run and the required additional packages. The observed CUDA build was `+cu130`; choose an appropriate CUDA wheel source for your machine. Installing the file does not provision a GPU or guarantee identical package versions for the unpinned auxiliary dependencies. Colab should use the notebook's own installation cell.
-
-## Repository contents
-
-- `OfficeHome_DomainShift_Colab_T4.ipynb`: executed notebook with tables and embedded figures; progress widgets and worker-cleanup tracebacks removed for readability.
-- `results/`: original CSV/JSON outputs, split manifest, deduplication log, training histories, predictions, and per-class reports.
-- `figures/`: original exported figures, including learning curves, domain examples, and ResNet18 linear-probe Clipart error analysis.
-- `report/project_report.pdf` and `.tex`: English report with measured results, default LaTeX font, A4 pages, and 0.75 cm margins. Compile with `pdflatex project_report.tex` from `report/`.
-- `scripts/verify_results.py`: independent checks of the archived results.
-- `PROVENANCE.md`: input-file hashes and packaging changes.
+The script recomputes accuracy and macro-F1 from all 16 prediction files and checks the class mapping, test membership, domain differences, selected checkpoint epochs, and saved data partitions. It does not retrain the models or download the dataset.
 
 ## Limitations
 
-The experiment uses one source domain, one seed, and one fixed data partition. Different domains also differ in image difficulty and composition, so accuracy differences do not isolate domain shift completely. Exact-byte deduplication does not detect near-duplicates, and overlap with ImageNet pretraining images cannot be ruled out. Only the last residual block is fine-tuned. No medical, satellite, or industrial dataset is evaluated. Results are not directly comparable to papers using the standard Office-Home adaptation protocol.
+- The experiment uses one source domain: Real-World.
+- It uses one fixed data split and one training seed.
+- Domain difficulty and image composition may also affect accuracy, so the differences do not isolate domain shift completely.
+- Exact-byte deduplication does not detect near-duplicate images.
+- Only the final residual block is fine-tuned; full-backbone fine-tuning is not evaluated.
+- Possible overlap between Office-Home images and ImageNet pretraining data cannot be ruled out.
+- The protocol is not directly comparable with studies using the standard Office-Home domain adaptation setup.
 
-## References and data use
+## References
 
 - Venkateswara, H., Eusebio, J., Chakraborty, S., & Panchanathan, S. (2017). *Deep Hashing Network for Unsupervised Domain Adaptation*. CVPR, 5018–5027. [Paper](https://openaccess.thecvf.com/content_cvpr_2017/html/Venkateswara_Deep_Hashing_Network_CVPR_2017_paper.html)
-- [Original Office-Home website and fair-use notice](https://www.hemanthdv.org/officeHomeDataset.html)
-- [Flower Labs dataset mirror](https://huggingface.co/datasets/flwrlabs/office-home)
-- [Torchvision ResNet18](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.resnet18.html) and [ResNet50](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.resnet50.html)
+- [Office-Home dataset and fair-use notice](https://www.hemanthdv.org/officeHomeDataset.html)
+- [Flower Labs Office-Home mirror](https://huggingface.co/datasets/flwrlabs/office-home)
+- [Torchvision ResNet18 documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.resnet18.html)
+- [Torchvision ResNet50 documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.resnet50.html)
 
-Office-Home is provided under the authors' stated terms for noncommercial research and education. No dataset archive or pretrained weights are bundled. Third-party data and model weights retain their respective terms.
+Office-Home is provided under the dataset authors' terms for noncommercial research and education. Third-party data and pretrained model weights retain their respective terms.
