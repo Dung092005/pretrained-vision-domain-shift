@@ -1,0 +1,583 @@
+\documentclass[10pt,a4paper]{article}
+
+% ============================================================
+% Scientific-paper typography (matched to the final CarValue AI report)
+% ============================================================
+\usepackage[T5]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.0}
+
+% ---------- Page & layout ----------
+\usepackage[a4paper,top=20mm,bottom=21mm,left=22mm,right=22mm]{geometry}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt plus 0.8pt minus 0.8pt}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsc{Office-Home Transfer Study}}
+\fancyhead[R]{\small\textsc{Deep Learning}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+\setlength{\headheight}{14pt}
+
+% ---------- Structure ----------
+\usepackage{titlesec}
+\usepackage{xcolor}
+\definecolor{navy}{HTML}{153A63}
+\definecolor{midgray}{HTML}{5B6573}
+\titleformat{\section}{\Large\bfseries\color{navy}}{\thesection.}{0.55em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.55em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.55em}{}
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+\titlespacing*{\subsection}{0pt}{7pt}{2.5pt}
+\titlespacing*{\subsubsection}{0pt}{6pt}{2pt}
+
+% ---------- Tables, math, figures ----------
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{longtable}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,labelsep=period}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[section]{placeins}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=1.25em,itemsep=2pt,topsep=2pt}
+\setlist[enumerate]{leftmargin=1.45em,itemsep=2pt,topsep=2pt}
+
+% ---------- Links ----------
+\usepackage{xurl}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=navy,
+  citecolor=navy,
+  urlcolor=navy,
+  pdftitle={Pretrained Vision Models Across Image Domains: Linear Probing and Partial Fine-Tuning on Office-Home},
+  pdfauthor={Nguyen Tien Dung et al.}
+}
+\urlstyle{same}
+
+% ---------- Project helpers ----------
+\newcommand{\LP}{linear probing}
+\newcommand{\FT}{partial fine-tuning}
+\newcommand{\R}{Real-World}
+\newcommand{\config}[1]{\texttt{#1}}
+\newcommand{\reportfigure}[3]{\begin{figure}[H]\centering\includegraphics[width=#2\linewidth]{#1}\caption{#3}\label{fig:#1}\end{figure}}
+\newcommand{\floatingfigure}[3]{\begin{figure}[!htb]\centering\includegraphics[width=#2\linewidth]{#1}\caption{#3}\label{fig:#1}\end{figure}}
+\setlength{\emergencystretch}{2em}
+\widowpenalty=10000
+\clubpenalty=10000
+\setcounter{topnumber}{2}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\raggedbottom
+
+\begin{document}
+
+% ============================================================
+% Title block
+% ============================================================
+\begin{center}
+{\small UNIVERSITY OF SCIENCE AND TECHNOLOGY OF HANOI (USTH)}\\[-1mm]
+{\small DEEP LEARNING -- FINAL PROJECT}\\[4mm]
+{\LARGE\bfseries Pretrained Vision Models Across Image Domains\\[1mm]
+Linear Probing and Partial Fine-Tuning on Office-Home}\\[4mm]
+{\small
+\begin{tabular}{ccc}
+\textbf{Nguyễn Tiến Dũng} & \textbf{Vũ Minh Châu} & \textbf{Nguyễn Minh Hiếu}\\
+23BA14068 & 23BA14028 & 23BA14105
+\end{tabular}\\[1.5mm]
+\begin{tabular}{ccc}
+\textbf{Lê Đức Anh} & \textbf{Hoàng Lê Anh Đức} & \textbf{Nguyễn Ngọc Hiếu}\\
+23BA14005 & 23BA14057 & 23BA14109
+\end{tabular}}\\[3mm]
+{\small Academic year 2025--2026 \quad | \quad Final report: October 2026}
+\end{center}
+
+\vspace{1mm}
+\hrule
+\vspace{2mm}
+
+\begin{abstract}
+Image classifiers often encounter visual styles that differ from their training data. This project examines how ImageNet-pretrained ResNet18 and ResNet50 transfer from real-world photographs to the Art, Clipart, and Product domains of Office-Home. We compare linear probing with partial fine-tuning of the final residual block under a source-only protocol. After removing 412 byte-identical duplicates, 15,176 images are partitioned into fixed, class-stratified training, validation, and test subsets. Only Real-World training images update model parameters; source-validation macro-F1 selects checkpoints. Four configurations are trained on a Colab Tesla T4 and evaluated on all four domains. ResNet50 linear probing achieves 82.03\% accuracy on Real-World but 37.15\% on Clipart. Partial fine-tuning raises ResNet50 Clipart accuracy to 40.87\%, while reducing accuracy on Art and Product. ResNet18 fine-tuning performs worse than linear probing in every domain. Additional analyses reveal frequent class confusions and increased high-confidence errors after fine-tuning. The findings support stronger pretrained representations but show that source-only fine-tuning does not consistently improve cross-domain reliability. Conclusions are limited to one training seed, one source domain, and fixed held-out partitions.
+\end{abstract}
+
+
+\vspace{1mm}
+\hrule
+
+\section{Introduction and Research Question}
+\subsection{Problem and motivation}
+A classifier that recognizes an object in a photograph may fail when the same object appears as a drawing or a simplified icon. The class name remains unchanged, but texture, background, outline, and context can change substantially. For a deployed classifier, this matters because users can upload images with visual styles that were not represented during task-specific training. Strong accuracy on held-out photographs alone does not answer whether the model can recognize those other styles.
+
+This project studies that problem using a shared 65-class classification task. Office-Home provides four domains of everyday objects and was introduced for domain adaptation research~\cite{officehome}. We use a different, explicitly source-only protocol: the model learns from Real-World photographs and is evaluated on held-out Real-World, Product, Art, and Clipart images. No target-domain example is used to fit model parameters or choose a checkpoint. The experiment therefore measures transfer to unseen task-training domains rather than adaptation using target data.
+
+\subsection{Research questions}
+The main question is: \emph{How do pretrained model architecture and the extent of task-specific fine-tuning affect recognition across image domains when training uses only Real-World images?} Three questions make this testable. First, does ResNet50 outperform a lighter ResNet18 when both use frozen pretrained backbones? Second, does updating the final residual block improve target-domain performance compared with updating only the classifier? Third, do accuracy gains coincide with more reliable confidence scores and fewer systematic class errors?
+
+\subsection{Scope and contribution}
+This study contributes a controlled comparison of architecture and adaptation scope under a source-only protocol. A version-pinned data pipeline establishes deduplicated, shared partitions; four training configurations provide sixteen held-out domain evaluations. Domain-level metrics are supplemented by paired prediction transitions, confidence diagnostics, and class-specific error analysis. Together, these analyses distinguish recognition accuracy from confidence reliability. The scope is an empirical assessment of established pretrained models rather than a new adaptation algorithm.
+
+
+\section{Related Work}
+\subsection{Pretrained representations and residual networks}
+Residual networks introduced skip connections that make deeper convolutional models easier to optimize~\cite{resnet}. ResNet18 and ResNet50 provide an accessible architecture comparison for this project: both belong to the same model family, but differ in depth, block design, feature dimension, and capacity. Using pretrained weights also makes the experiment feasible within a single Colab GPU session. The study evaluates the supplied torchvision implementations rather than reimplementing or retraining the original ImageNet models.
+
+Feature transfer is not equally effective at every layer. Yosinski et al.~\cite{yosinski} studied the distinction between general and task-specific representations and identified both specialization and optimization difficulties as factors affecting transfer. Their work motivates the two training modes considered here: keeping the representation fixed, or allowing its final stage to adapt. It does not establish in advance which choice will work better for Office-Home; that remains an empirical question in this report.
+
+Kornblith et al.~\cite{kornblith} examined the relationship between ImageNet model quality and transfer across classification tasks. Their results motivate testing a stronger pretrained architecture rather than assuming that all pretrained features are interchangeable. Our scope is narrower: two residual architectures, one dataset, and shifts among four image domains. Consequently, any advantage observed for ResNet50 is specific evidence for these checkpoints and settings, not a universal claim that deeper models always transfer better.
+
+\subsection{Domain adaptation and domain generalization}
+The original Office-Home work uses labeled source data and unlabeled target data to study domain adaptation~\cite{officehome}. In the present experiment, target images are unavailable during model fitting and checkpoint selection. This distinction changes the information available to the learner and prevents direct comparison with reported adaptation scores. The project also uses custom held-out partitions after exact-byte deduplication, further distinguishing its evaluation from common benchmark protocols.
+
+Gulrajani and Lopez-Paz~\cite{domainbed} emphasize the importance of consistent experimental conditions and model selection in domain generalization. We follow that principle by fixing data partitions, identifying the validation domain, and using the same selection rule across configurations. However, this is a single-source study, whereas many domain generalization evaluations train on multiple source environments. Results should therefore be interpreted as source-only transfer under a restricted training distribution.
+
+\subsection{Optimization and implementation sources}
+AdamW separates weight decay from the adaptive gradient update~\cite{adamw}; it is used here with fixed optimizer settings across architectures. A cosine learning-rate schedule is used over the configured epoch budget. Although cosine schedules appear in SGDR~\cite{sgdr}, this implementation has no warm restarts and uses AdamW rather than SGDR's complete optimization procedure. The dataset mirror~\cite{mirror} and torchvision weight documentation~\cite{torchvision} are cited to identify the implementation and data provenance.
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Position of this project relative to the cited literature.}
+\begin{tabularx}{\linewidth}{p{3.8cm}XX}
+\toprule
+Research direction & Role in this project & Boundary of the present evidence\\
+\midrule
+Residual architectures & ResNet18 and ResNet50 are the tested backbones. & No new residual architecture is proposed.\\
+Feature transfer & Frozen features are compared with final-stage adaptation. & Earlier stages and full fine-tuning are not ablated.\\
+Office-Home adaptation & Supplies the shared-label, multi-domain dataset. & No target images are used for adaptation.\\
+Domain generalization & Motivates explicit source-only model selection. & Only one source domain and one training seed are evaluated.\\
+\bottomrule
+\end{tabularx}
+\end{minipage}\end{center}
+
+Building on these research directions, the present study examines the interaction between pretrained architecture, source-specific adaptation, and target appearance. Its evaluation combines conventional recognition metrics with confidence and error diagnostics, allowing accuracy improvements to be assessed alongside changes in predictive reliability.
+
+
+\section{Dataset and Data Preparation}
+\subsection{Dataset identity, official source, and version}
+Office-Home contains everyday object images from Art, Clipart, Product, and Real-World, with 65 object categories shared across domains. Art includes artistic depictions, Clipart contains stylized graphic representations, Product emphasizes product imagery, and Real-World contains camera photographs. The official dataset website is \url{https://www.hemanthdv.org/officeHomeDataset.html}. The associated publication is the CVPR 2017 Office-Home paper~\cite{officehome}. The original download is identified as \texttt{OfficeHomeDataset\_10072016.zip}; the official distribution is not described as a semantic-versioned release.
+
+The executed notebook uses the Flower Labs Hugging Face mirror, \texttt{flwrlabs/office-home}, pinned to revision \texttt{2a083645e3177afbd91ba4fa2651238f8994d335}. Its exact version is accessible at \url{https://huggingface.co/datasets/flwrlabs/office-home/tree/2a083645e3177afbd91ba4fa2651238f8994d335}. This revision, rather than a moving branch, defines the downloaded data used in the experiment. The mirror reports its relationship to the original dataset~\cite{mirror}. We do not claim to have independently proved that its archive bytes match every file in the original ZIP.
+
+\subsection{Automatic acquisition and image validation}
+The pipeline downloads three Parquet shards containing embedded image bytes, domain identifiers, and class labels. Expected byte sizes and SHA-256 checksums are checked before extraction. Batched extraction preserves image bytes rather than recompressing images. A completed-data marker permits reuse of a verified local extraction. Downloads use the public mirror without authentication, with retry and HTTP fallback paths for temporary download failures.
+
+Each image is opened and decoded to RGB. The run found 15,588 images and no corrupted-image exclusions. A SHA-256 hash is then computed from the original bytes. Duplicate hashes are removed globally before any split is assigned. This removes 412 records, or 2.64\% of the downloaded images, leaving 15,176 retained images. Of the removed records, 9 have a retained counterpart in a different domain. The procedure therefore addresses exact-byte repetition both within and across domains.
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Image counts after global exact-byte deduplication.}
+\begin{tabular}{lrrrrr}
+\toprule
+Domain & Removed duplicates & Retained & Train & Validation & Test\\
+\midrule
+Art &112&2,315&1,617&349&349\\
+Clipart &113&4,252&2,960&646&646\\
+Product &162&4,277&2,985&646&646\\
+Real-World &25&4,332&3,030&651&651\\
+\midrule
+Total &412&15,176&10,592&2,292&2,292\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+\reportfigure{domain_examples.png}{0.52}{Examples exported by the executed notebook, illustrating the visual styles encountered in Office-Home. The common category system is preserved across domains; appearance is not.}
+
+
+\subsection{Class mapping and partition construction}
+All four domains are checked for the same set of 65 class names. An alphabetically sorted mapping assigns class indices from 0 to 64, and the mapping is exported as \texttt{class\_to\_idx.json}. This shared mapping is essential: the same output index must identify the same object category in every domain. Domain names describe appearance distributions, not separate classification targets. Each training configuration uses a single 65-way classifier across all evaluation domains.
+
+Splits are assigned independently within each domain/class group using NumPy's random generator with split seed 2026. For a group containing $n$ images, validation and test counts are each $\max(1,\operatorname{round}(0.15n))$, with the remainder assigned to training. This approximates a 70/15/15 ratio while preserving all categories in every domain/split combination. Rounding explains small differences from exact proportions. All configurations use the same exported manifest, and no image path or retained byte hash appears twice.
+
+Global deduplication retains the first encountered copy in a deterministic domain/path traversal. This makes the procedure reproducible but can change domain-specific sample counts. It is not a semantic deduplication system: resized copies, recompressed files, cropped variants, and visually near-identical images may remain. Hash uniqueness also does not establish independence from ImageNet pretraining data. These boundaries are relevant when interpreting held-out performance.
+
+\subsection{Data access under the source-only protocol}
+Only the 3,030 Real-World training images update model parameters. The 651 Real-World validation images determine the selected checkpoint. The four domain test sets provide the final evaluations, totaling 2,292 test images per configuration. Target-domain training and validation partitions are constructed and recorded for consistency, but are not used for optimization, early stopping, hyperparameter tuning, or checkpoint selection. Four configurations therefore yield sixteen domain-level evaluations, with 9,168 prediction records across all evaluations.
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Permitted use of each partition. Target denotes Art, Clipart, or Product.}
+\begin{tabularx}{\linewidth}{p{4cm}XXX}
+\toprule
+Partition & Parameter updates & Checkpoint selection & Final reporting\\
+\midrule
+Real-World training & Yes & No & Training history only\\
+Real-World validation & No & Yes, macro-F1 & Validation history\\
+Real-World test & No & No & Source test metrics\\
+Target training/validation & No & No & Counts and provenance only\\
+Target test & No & No & Target metrics and error analysis\\
+\bottomrule
+\end{tabularx}
+\end{minipage}\end{center}
+
+\subsection{Preprocessing and augmentation}
+Training images are converted to RGB, randomly resized and cropped to $224\times224$ pixels with crop-area scale in $[0.7,1.0]$, and randomly horizontally flipped. These operations vary object framing and orientation during source training. They do not expose the learner to actual target-domain images and should not be described as a domain adaptation procedure. No mixup, style transfer, color-jitter ablation, or synthetic target generation was performed.
+
+Validation and test preprocessing is deterministic. The shorter image edge is resized to 256 pixels, followed by a central $224\times224$ crop. Tensor values are scaled to $[0,1]$ and standardized channel-wise using ImageNet means $(0.485,0.456,0.406)$ and standard deviations $(0.229,0.224,0.225)$. The same normalization is applied during training. A fixed central crop can remove peripheral content or retain an incomplete object; this is a possible source of error, not an experimentally isolated effect.
+
+The manifest records domain, class name, class index, split, relative path, and byte hash. The exported mapping and manifest specify the exact evaluation inputs and class semantics for independent verification.
+
+
+\section{Methods}
+\subsection{Baseline method: pretrained ResNet18 with a linear probe}
+The baseline is ResNet18 with torchvision \texttt{IMAGENET1K\_V1} weights and a new 65-class fully connected head. The pretrained backbone is frozen. Its final pooled representation $h_\theta(x)\in\mathbb{R}^{512}$ is mapped to logits by
+\begin{equation}
+z(x)=Wh_\theta(x)+b,\qquad W\in\mathbb{R}^{65\times512},\quad b\in\mathbb{R}^{65}.
+\end{equation}
+Only $W$ and $b$ are optimized. The model therefore tests whether fixed pretrained features already separate the Office-Home categories when the head is learned from Real-World images. It provides a computationally accessible reference and avoids attributing every improvement to changes in backbone representations.
+
+\subsection{Main model: pretrained ResNet50}
+The main architecture is ResNet50 with the same named weight generation, \texttt{IMAGENET1K\_V1}, and a new 65-class head. Its pooled representation has 2,048 dimensions. Both linear probing and partial fine-tuning are tested for this architecture. We refer to ResNet50 as the main model family; the selected training strategy is itself an experimental factor. This prevents the report from defining the main method retrospectively only by whichever target-domain test result is largest.
+
+The code explicitly requests V1 weights rather than the moving \texttt{DEFAULT} alias. Torchvision documents separate weight variants and preprocessing recipes~\cite{torchvision}. The experiments use the notebook's common preprocessing for both architectures. ResNet18 and ResNet50 differ in more than depth, including residual block structure and representation size~\cite{resnet}; architecture effects cannot be interpreted as the isolated causal effect of adding layers.
+
+\subsection{Partial fine-tuning of the final residual stage}
+In the fine-tuning mode, parameters in \texttt{layer4} and the new classification head are trainable, while all earlier stages remain frozen. The head learning rate is $10^{-3}$ and the final-stage learning rate is $10^{-4}$. The smaller backbone rate limits the size of updates to pretrained representations. This is partial fine-tuning, not end-to-end fine-tuning. An unfrozen final stage can modify the representation used by the classifier, but the source-only objective provides no explicit constraint that those changes preserve target-domain performance.
+
+Batch normalization running statistics remain fixed in both modes. During partial fine-tuning, the final stage is put into training mode and BatchNorm modules are then returned to evaluation mode. Trainable affine parameters in the unfrozen stage can still receive gradients. This distinction separates frozen running means/variances from frozen affine weights. It reduces one source of source-distribution drift without implying that all normalization behavior has been removed from the model.
+
+\subsection{Training objective and optimization}
+For a source training set $\mathcal D_s$, the objective is multiclass cross-entropy:
+\begin{equation}
+\mathcal L(\theta,W,b)=-\frac{1}{|\mathcal D_s|}\sum_{(x_i,y_i)\in\mathcal D_s}
+\log\frac{\exp z_{y_i}(x_i)}{\sum_{k=1}^{65}\exp z_k(x_i)}.
+\end{equation}
+The same objective is used for all configurations. AdamW applies weight decay $10^{-4}$~\cite{adamw}. A cosine schedule decreases each parameter group's learning rate over its configured maximum epoch count, without restarts~\cite{sgdr}. Mixed precision uses FP16 CUDA autocasting and gradient scaling. Gradients are unscaled before clipping their global norm to 1.0. The batch size is 32, and the final incomplete batch is retained.
+
+\subsection{Comparison strategy}
+The factorial comparison has two architectures and two training modes. Architecture comparisons hold the mode fixed; mode comparisons hold the architecture fixed. Partitions, source data, augmentation, loss, validation rule, seed, and batch size are shared. Fine-tuning has a maximum of 20 epochs versus 15 for linear probing and optimizes more parameters. This is a practical strategy comparison rather than a compute-matched ablation. Any conclusion is conditional on these budgets and learning rates.
+
+
+\section{Experimental Setup}
+\subsection{Execution environment and reproducibility}
+The completed run used Google Colab with a Tesla T4. Saved environment metadata reports Python 3.13.15, PyTorch \texttt{2.11.0+cu130}, and torchvision \texttt{0.26.0+cu130}. These are observed run versions, not a claim about the latest available software. The notebook retains Colab's installed PyTorch pair and installs additional data and analysis dependencies. The training seed is 42; split seed 2026 is separate from the training seed. Epoch-derived data-loader seeds permit reproducible shuffle construction during checkpoint recovery.
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Settings shared across the four configurations unless specified.}
+\begin{tabularx}{\linewidth}{p{5cm}X}
+\toprule
+Setting & Recorded value\\
+\midrule
+Training / selection domain & Real-World / Real-World validation\\
+Backbones / initial weights & ResNet18, ResNet50 / \texttt{IMAGENET1K\_V1}\\
+Output / input size & 65 classes / $224\times224$ RGB\\
+Optimizer / criterion & AdamW / multiclass cross-entropy\\
+Head / final-stage learning rate & $10^{-3}$ / $10^{-4}$\\
+Weight decay / gradient norm limit & $10^{-4}$ / 1.0\\
+Schedule / precision & Cosine annealing, no restarts / FP16 mixed precision\\
+Batch size / loading workers & 32 / 2\\
+Epoch budget & Linear probe: 15; partial fine-tuning: 20\\
+Checkpoint criterion / patience & Source-validation macro-F1 / 5 non-improving epochs\\
+Random seeds & Training: 42; partitioning: 2026\\
+\bottomrule
+\end{tabularx}
+\end{minipage}\end{center}
+
+\subsection{Checkpoint selection and stopping}
+After each epoch, validation macro-F1 is calculated on Real-World validation images. A checkpoint is updated when this score exceeds the previous best by more than $10^{-6}$. The selected epoch is therefore based on source validation, not training accuracy, validation accuracy, or target test scores. Training stops after five epochs without a qualifying improvement, or at the maximum budget. The best checkpoint is reloaded before all test evaluations.
+
+\texttt{best.pt} stores the selected model state and metadata such as class names, model name, training mode, seed, and validation metrics. \texttt{last.pt} additionally stores optimizer, scheduler, gradient scaler, history, and random-generator states to support recovery. The results archive excludes large checkpoint files. A configuration fingerprint ties recovery files to the settings and manifest; changing a hashed setting produces a different output directory. This prevents a resumed experiment from silently mixing incompatible configurations.
+
+\subsection{Setup 1: baseline versus main model}
+Setup 1 compares ResNet18 linear probing with ResNet50 linear probing. It asks whether changing the pretrained architecture improves the same 65-way task without updating backbone parameters. Source test performance measures held-out photograph recognition; the three target test domains show whether that advantage extends beyond the task-training visual style. The same source-validation criterion is used for both models even when the selected epochs differ.
+
+The primary outcomes are domain-specific accuracy and macro-F1. An equal-domain target average provides a secondary summary, while separate target metrics preserve differences among Product, Art, and Clipart. Both models are initialized from pretrained weights and learn only from the same source training partition.
+
+
+\subsection{Setup 2: the main cross-domain research experiment}
+Setup 2 compares linear probing with partial fine-tuning for both backbones and evaluates every selected model across all domains. The source remains Real-World throughout. The experiment asks whether supervised adaptation to source photographs changes performance on Product photographs, artistic depictions, and Clipart. There are four training runs, not four independent domain-specific training procedures. Each run yields one checkpoint applied to every domain test set.
+
+Mode effects are reported as fine-tuning minus linear-probe differences within an architecture. A positive value indicates that fine-tuning improves the relevant test metric; a negative value indicates a reduction. Source-to-target differences are also reported, but they are descriptive comparisons between distinct test distributions. They do not estimate the effect of changing the rendering style of the same matched image, since the domain samples are not paired object instances.
+
+\subsection{Setup 3: training-scope ablation and robustness analysis}
+Setup 3 uses saved histories and predictions for additional analysis. The training-scope ablation is the already completed change from a head-only model to a head-plus-\texttt{layer4} model. Paired prediction transitions count images corrected by fine-tuning and images that become incorrect. Learning curves check whether continuing source fitting aligns with validation improvement. Per-class recall and confusion counts identify failure patterns hidden by overall accuracy.
+
+The robustness component examines maximum softmax confidence. For each model/domain, a fixed diagnostic threshold of 0.9 is used to report retained coverage, accuracy among retained predictions, and the number of retained errors. The threshold was chosen for reporting and was not optimized on target labels. A Clipart accuracy--coverage curve ranks all test images by confidence. These are retrospective diagnostics, not a validated deployment rejection policy. No corrupted-image benchmark, adversarial attack, or augmentation sweep was executed.
+
+\subsection{Evaluation metrics}
+For predictions $\hat y_i$ and labels $y_i$ on a test set with $N$ images, accuracy is
+\begin{equation}
+\operatorname{Acc}=\frac{1}{N}\sum_{i=1}^{N}\mathbf 1[\hat y_i=y_i].
+\end{equation}
+Macro-F1 weights all 65 categories equally:
+\begin{equation}
+\operatorname{MacroF1}=\frac{1}{65}\sum_{k=1}^{65}
+\frac{2\,TP_k}{2\,TP_k+FP_k+FN_k},
+\end{equation}
+with undefined class scores set to zero. Accuracy can be dominated by more frequent classes, whereas macro-F1 reflects class-level precision and recall. Their difference is informative but is not a standalone measure of class imbalance or calibration.
+
+The domain difference is $\Delta_d=100(\operatorname{Acc}_{\R}-\operatorname{Acc}_d)$, measured in percentage points. The equal-domain target mean is $\overline{\operatorname{Acc}}_t=(\operatorname{Acc}_{Art}+\operatorname{Acc}_{Clipart}+\operatorname{Acc}_{Product})/3$. It assigns equal weight to domains, not images. Maximum softmax confidence is $c_i=\max_k \operatorname{softmax}(z_i)_k$. Confidence is not interpreted as a calibrated probability that the prediction is correct.
+
+All evaluations use the same fixed test membership within a domain. With one training seed, across-seed variance and significance are not estimated. Accuracy and macro-F1 were independently recomputed from saved top-1 predictions; archived cross-entropy losses cannot be reconstructed without the full logits or class probabilities. No model was retrained to produce the report's additional analyses.
+
+
+\section{Results and Discussion}
+\subsection{Held-out test performance}
+Tables~\ref{tab:accuracy} and~\ref{tab:f1} report the selected checkpoints. R18 and R50 denote ResNet18 and ResNet50; LP denotes linear probing, and FT denotes partial fine-tuning of \texttt{layer4} and the head. The Real-World column is the held-out source test result. Product, Art, and Clipart are held-out targets. The target mean excludes Real-World and is calculated from full-precision values before rounding.
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Test accuracy (\%). Best values within each domain are bold. Target mean gives equal weight to the three target domains.}\label{tab:accuracy}
+\begin{tabular}{lrrrrr}
+\toprule
+Configuration & Real-World & Product & Art & Clipart & Target mean\\
+\midrule
+R18-LP &79.42&67.34&55.59&36.22&53.05\\
+R18-FT &74.81&60.68&49.00&33.75&47.81\\
+R50-LP &82.03&\textbf{72.91}&\textbf{62.75}&37.15&57.60\\
+R50-FT &\textbf{82.64}&71.83&61.60&\textbf{40.87}&\textbf{58.10}\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Test macro-F1 (0--1 scale), including the equal-domain target mean.}\label{tab:f1}
+\begin{tabular}{lrrrrr}
+\toprule
+Configuration & Real-World & Product & Art & Clipart & Target mean\\
+\midrule
+R18-LP &0.7671&0.6550&0.5182&0.3345&0.5026\\
+R18-FT &0.7230&0.5828&0.4423&0.3160&0.4470\\
+R50-LP &0.7954&\textbf{0.7150}&\textbf{0.5898}&0.3837&0.5628\\
+R50-FT &\textbf{0.8109}&0.7042&0.5781&\textbf{0.4372}&\textbf{0.5732}\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+\reportfigure{accuracy.pdf}{0.95}{Accuracy by domain and configuration. All models perform best on source photographs and worst on Clipart. Labels show measured percentages. Colors and hatching distinguish configurations evaluated on identical domain-specific test partitions.}
+
+Setup 1 favors the stronger pretrained architecture. Compared with R18-LP, R50-LP raises accuracy by 2.61 points on Real-World, 5.57 on Product, 7.16 on Art, and 0.93 on Clipart. Macro-F1 also improves in each domain. The small Clipart accuracy gain indicates that architectural improvement alone does not remove the most severe transfer failure. A larger feature extractor helps this task, but substantial stylized-domain error remains.
+
+Figure~\ref{fig:accuracy.pdf} shows a consistent ordering of domain difficulty. Product performance is closer to Real-World performance than Art or Clipart performance for every configuration. An appearance-based explanation is plausible: product photographs retain many photographic cues, while artistic and graphic images can remove or alter them. However, object framing, sample difficulty, class frequencies, and background composition also differ. The data support a descriptive domain ordering, not a controlled causal claim about texture alone.
+
+The main architectural advantage is therefore broader than a source-only gain, but uneven across target domains. Evaluating only Real-World would conceal this unevenness. Evaluating only the target mean would likewise conceal the difference between relatively strong Product accuracy and much weaker Clipart accuracy.
+
+
+\subsection{Source-to-target differences and fine-tuning effects}
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Source minus target accuracy, in percentage points. Smaller values mean a narrower difference, but do not by themselves imply higher target accuracy.}
+\begin{tabular}{lrrr}
+\toprule
+Configuration & Product & Art & Clipart\\
+\midrule
+R18-LP &12.08&23.83&43.19\\
+R18-FT &14.13&25.81&41.06\\
+R50-LP &9.12&19.28&44.88\\
+R50-FT &10.82&21.04&41.78\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+R50-LP falls from 82.03\% source accuracy to 37.15\% Clipart accuracy, a 44.88-point difference. R18-FT has a smaller Clipart difference than R18-LP, yet its Clipart accuracy is also lower. The apparent improvement in that difference occurs because source accuracy falls more sharply. Domain differences must therefore be read together with absolute source and target metrics. A low-performing model can have a small gap without being useful on either distribution.
+
+Figure~\ref{fig:fine_tuning_changes.pdf} shows architecture-dependent fine-tuning outcomes. R18-FT lowers accuracy by 4.61 points on Real-World, 6.66 on Product, 6.59 on Art, and 2.48 on Clipart. Its target mean drops by 5.24 points. These outcomes do not support the assumption that allowing more parameters to update necessarily improves transfer. They are consistent with a poor match between the chosen adaptation recipe and this backbone, but learning-rate sensitivity, source specialization, and optimization effects were not separately tested.
+
+For ResNet50, fine-tuning raises Real-World accuracy by 0.61 points and Clipart accuracy by 3.72 points, while reducing Product and Art accuracy by 1.08 and 1.15 points. Its target mean increases by only 0.50 points. Clipart macro-F1 rises from 0.3837 to 0.4372, suggesting that the gain is not confined to the aggregate correct count. Nevertheless, no configuration dominates the other ResNet50 configuration across all domains and reliability criteria.
+
+\reportfigure{fine_tuning_changes.pdf}{1.0}{Within-architecture changes after partial fine-tuning. Bar labels give full-precision differences rounded to two decimals, calculated from paired archived predictions. Green bars indicate gains and orange-red bars indicate reductions. The direction of change varies across backbones and domains.}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Paired correctness changes from LP to FT for ResNet50 on the same test images.}
+\begin{tabular}{lrrrrr}
+\toprule
+Domain & Both correct & Gained correct & Lost correct & Both wrong & Net correct\\
+\midrule
+Real-World &492&46&42&71&+4\\
+Product &423&41&48&134&$-7$\\
+Art &186&29&33&101&$-4$\\
+Clipart &205&59&35&347&+24\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+The paired counts clarify what the accuracy changes mean. On Clipart, ResNet50 fine-tuning corrects 59 linear-probe errors but loses 35 previously correct predictions. The net gain is 24 of 646 images, not a universal correction of the original mistakes. On Real-World, 88 predictions change correctness state even though the net gain is only four images. Aggregate differences can hide substantial redistribution of successes and failures. These counts are descriptive and do not measure variation across retraining seeds.
+
+
+\subsection{Training dynamics and checkpoint selection}
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Recorded training outcomes. Time sums the per-epoch train-and-validation timers; it excludes download, setup, final tests, and checkpoint-writing overhead outside those timers.}
+\begin{tabular}{lrrrr}
+\toprule
+Configuration & Selected epoch & Completed epochs & Best validation macro-F1 & Recorded minutes\\
+\midrule
+R18-LP &8&13&0.7934&18.55\\
+R18-FT &4&9&0.7520&12.02\\
+R50-LP &14&15&0.8378&20.67\\
+R50-FT &12&17&0.8130&24.27\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+The completed histories contain 54 epochs in total, corresponding to approximately 75.51 recorded minutes of training plus validation. This is not total session runtime. The R18-LP, R18-FT, and R50-FT runs end after five epochs without a qualifying validation improvement. R50-LP reaches its 15-epoch maximum; its selected checkpoint is epoch 14. Thus, the evaluated model is not necessarily the last epoch or the model with the lowest training loss.
+
+\floatingfigure{learning_curves.pdf}{0.94}{Source training and validation accuracy for all four runs, plotted directly from the recorded epoch histories. Dotted lines mark checkpoints selected by source-validation macro-F1, not by the accuracy curves. Each marker represents a recorded epoch.}
+
+The histories in Figure~\ref{fig:learning_curves.pdf} show that R18-LP achieves 95.05\% training accuracy at the selected epoch, while source-validation macro-F1 is 0.7934. Training accuracy continues to increase to 97.52\% by epoch 13, but validation macro-F1 does not exceed the epoch-8 score. The validation rule therefore prevents later source fitting from automatically becoming the final reported checkpoint. The same logic is important for R18-FT, whose best validation score occurs as early as epoch 4.
+
+R50-FT reaches 99.37\% training accuracy and a training loss of 0.0281 at its selected epoch, but validation macro-F1 is lower than that of R50-LP. This is evidence that excellent source-training fit does not guarantee the strongest source-validation result. It is compatible with source-specific fitting, but the present experiment cannot isolate its cause from hyperparameter and optimization effects. A larger trainable representation may also produce more extreme logits, a possibility examined through confidence diagnostics on the following page.
+
+Checkpoint selection itself introduces an interpretive boundary. R50-LP has the better source-validation macro-F1, but R50-FT has slightly higher source test accuracy and macro-F1. Validation and test are separate finite samples, and their rankings need not coincide. This is not a reason to select checkpoints from test scores. The prescribed source-validation rule remains the appropriate basis for the reported experiment, while target metrics are used only to analyze the selected models.
+
+The timers also show why epoch counts alone are an incomplete compute description. Reported per-epoch durations are similar in this run, even though the trainable parameter sets differ. Input loading, validation, and runtime scheduling contribute to the observed times. No controlled throughput, GPU utilization, or inference-latency benchmark was recorded, so the report does not claim a precise deployment speed advantage for either architecture.
+
+
+\subsection{Confidence robustness and selective prediction}
+Accuracy evaluates the top predicted class, while confidence concerns the score attached to that prediction. The two can move in different directions. On Clipart, R50-FT improves top-1 accuracy but increases mean confidence from 0.6353 to 0.8200. Among wrong predictions, mean confidence rises from 0.5380 to 0.7508. The model is therefore more certain on average about both correct and incorrect decisions under the target distribution.
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{ResNet50 confidence diagnostics at a fixed maximum-softmax threshold of 0.9. Coverage is the percentage of all test images retained. Accuracy is calculated only on retained images.}
+\begin{tabular}{llrrrr}
+\toprule
+Mode & Domain & Retained / total & Coverage (\%) & Retained accuracy (\%) & Retained errors\\
+\midrule
+LP &Real-World&417/651&64.06&97.36&11\\
+FT &Real-World&565/651&86.79&88.32&66\\
+LP &Product&328/646&50.77&94.82&17\\
+FT &Product&500/646&77.40&83.00&85\\
+LP &Art&148/349&42.41&87.16&19\\
+FT &Art&227/349&65.04&77.53&51\\
+LP &Clipart&170/646&26.32&76.47&40\\
+FT &Clipart&359/646&55.57&56.55&156\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+On Clipart, the same numeric threshold retains 170 predictions for LP and 359 for FT. Their retained accuracies are 76.47\% and 56.55\%, respectively. The threshold thus represents different effective levels of selectivity for the two models. The higher error count after fine-tuning partly reflects accepting more images, so that count should not be interpreted independently of coverage. Together, the numbers show that a shared softmax threshold is not a shared reliability guarantee.
+
+\reportfigure{risk_coverage.pdf}{0.95}{Clipart accuracy among the highest-confidence predictions as coverage increases. Each curve uses the saved maximum-softmax scores and top-1 outcomes. Very small retained subsets are unstable and do not establish deployment guarantees.}
+
+The accuracy--coverage curves in Figure~\ref{fig:risk_coverage.pdf} characterize the trade-off across operating points. Rejecting lower-confidence predictions can raise accuracy on the retained subset, but also leaves more inputs unanswered. A practical application would need to choose that operating point from a separate validation process representing expected user inputs. The present target test labels are used to diagnose the curve after evaluation; they are not used to fit a threshold or modify the model.
+
+The confidence issue is visible even on the source test set: fine-tuning increases retained coverage from 64.06\% to 86.79\%, while retained accuracy falls from 97.36\% to 88.32\%. This suggests that source-only accuracy gains are insufficient evidence of improved confidence quality. The observed errors do not support interpreting a softmax score of 0.9 as a calibrated 90\% probability of correctness.
+
+These diagnostics are not a complete calibration evaluation. The archived files contain only top-1 labels and maximum confidence, not the full probability vector needed for every probabilistic metric. The report therefore avoids claims about multiclass Brier scores, logit-based temperature scaling, or top-5 performance. The supported finding is narrower: this fine-tuning configuration produces many more confident errors and requires separate reliability assessment before its scores are interpreted as probabilities of correctness.
+
+
+\section{Error and Qualitative Analysis}
+\subsection{Systematic class failures in Clipart}
+Clipart is the weakest domain across all configurations, so it is the focus of detailed error inspection. The notebook exported a qualitative panel for R18-LP, the baseline configuration. This panel is used as recorded; it is not presented as evidence of the exact errors made by R50-FT. Numerical comparisons across models are obtained from their separate saved prediction files.
+
+R18-LP correctly classifies 234 of 646 Clipart images and misclassifies 412. Thirteen of the 65 categories have zero recall on this test partition. Examples include Bottle (0/15), Couch (0/9), Spoon (0/9), Radio (0/7), and several classes with only five or six test images. Zero recall indicates a complete failure on the observed examples of that class, not proof that every possible image of the category will fail. Small class-level supports make these estimates particularly sensitive to the fixed split.
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Selected directed confusion counts for R18-LP on Clipart. Counts refer to incorrect predictions, not percentages.}
+\begin{tabular}{llr@{\qquad}llr}
+\toprule
+True class & Predicted class & Count & True class & Predicted class & Count\\
+\midrule
+Computer &Monitor&6 &Batteries &Folder&6\\
+Computer &Folder&6 &Couch &Folder&6\\
+Notebook &Folder&5 &Bottle &Folder&5\\
+Laptop &Monitor&4 &Pen &ToothBrush&4\\
+Hammer &Folder&4 &Marker &Folder&4\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+One recurrent pattern is a concentration of predictions in Folder. The test set contains 15 true Folder images, but R18-LP predicts Folder 114 times. Only 12 of these predictions are correct, giving Folder precision of 10.53\% and recall of 80.00\%. The high recall is therefore accompanied by many false positives. This illustrates why class recall or overall accuracy alone cannot describe the error structure. Several visually different categories are mapped to the same output, contributing to weak macro-F1.
+
+The concentration is consistent with a mismatch between learned source decision regions and stylized target features. Many unrelated graphic images may be embedded into a region associated with a broad source class. That interpretation is a hypothesis; it has not been verified through feature embeddings, saliency maps, or controlled interventions. The current evidence establishes the output concentration and its effect on class-level precision, rather than its internal neural cause.
+
+\subsection{Shape overlap, missing cues, and label granularity}
+Some confusions are semantically or visually close: Computer versus Monitor, Laptop versus Monitor, Trash Can versus Bucket, and Couch versus Bed. Simplified renderings can emphasize the shared outline while omitting the components that distinguish the classes. A photograph-trained model may rely on components, material cues, context, or texture that a drawing lacks. However, a model can also make a reasonable object-level prediction that disagrees with a coarse dataset label when an image includes multiple objects.
+
+Computer-to-Monitor errors are especially relevant. An image labeled Computer can prominently display a monitor, and the predicted category may correspond to the visible component. The qualitative panel indeed includes such a case. This does not justify relabeling the dataset automatically, but it cautions against treating every disagreement as equally unambiguous. The task remains to predict the dataset label; ambiguity should be reported separately from explanations about model weakness.
+
+\subsection{What the class-level analysis adds}
+The low Clipart scores are not just a uniform reduction in recognition. Some categories retain useful recall, some collapse completely on the fixed test subset, and Folder becomes an overpredicted class. These distinct patterns suggest different next steps: inspect representative failures and label ambiguity, then assess augmentation or representation changes with controlled comparisons. No such correction was performed in this run. The report keeps measured errors separate from proposed explanations and future experiments.
+
+
+\subsection{Qualitative failure cases}
+\reportfigure{errors_Real_World__resnet18__linear_probe__seed42_Clipart.png}{0.77}{The twelve highest-confidence misclassifications on Clipart for R18-LP. Labels indicate the ground-truth class, predicted class, and maximum-softmax score. Cases are ranked by confidence; the panel is not a random sample of test images.}
+
+\paragraph{Similar shapes and object components.}
+The webcam is predicted as Speaker with confidence 0.9728; its central circular element and dark casing offer a plausible visual resemblance. Trash Can is predicted as Bucket at 0.9520, while Computer is predicted as Monitor at 0.9230. These examples support inspection of class boundaries and visible components. The explanations are based on the displayed images and are not claims about measured attention or particular activated features.
+
+\paragraph{Grid layouts and conflicting content.}
+Calendar is predicted as Calculator at 0.9666, and Calculator is predicted as Calendar at 0.8792. Both images contain organized grids and numerals, although their semantic functions differ. Another Calendar image includes a clock and is predicted as Alarm Clock at 0.9010. The Toys image is a grid of several illustrated objects and is predicted as Calendar at 0.9674. These cases show why a single image-level class can be difficult when arrangement or a second visible object competes with the labeled category.
+
+\paragraph{Multi-object and stylized representations.}
+The Spoon image includes both a spoon and a fork and is classified as Fork at 0.8935. That is an incorrect dataset-label prediction but corresponds to an object visibly present. The simplified baby bottle is mapped to Folder at 0.8929, and a Backpack image containing several bags is also mapped to Folder at 0.8979. These failures combine stylization, object composition, and broad decision-region errors; the panel does not isolate which factor is responsible.
+
+\paragraph{Interpretation and sampling limits.}
+Sorting errors by confidence intentionally highlights unreliable certainty and does not estimate how frequently each visual mechanism occurs. The 12 displayed cases represent only a subset of 412 baseline Clipart errors. A systematic follow-up requires randomly sampled successes and failures, explicit ambiguity judgments, and matched comparisons across architectures. Full logits would support calibration and top-$k$ analysis, while controlled crop comparisons could isolate framing effects. These analyses lie outside the completed experiments.
+
+
+\clearpage
+\section{Conclusion and Limitations}
+\subsection{Main findings}
+Under the fixed source-only protocol, ResNet50 outperforms ResNet18 for both corresponding training modes in all four domains. However, high source accuracy does not imply reliable cross-domain recognition: ResNet50 linear probing achieves 82.03\% on Real-World but only 37.15\% on Clipart. Stronger pretrained features help, while substantial errors remain on stylized inputs.
+
+Partial fine-tuning has mixed effects. It lowers ResNet18 accuracy in every domain. For ResNet50, it improves Clipart accuracy by 3.72 percentage points and Real-World accuracy by 0.61 points, but reduces Art and Product accuracy. The equal-domain target mean increases only from 57.60\% to 58.10\%. It also increases Clipart predictions with confidence at least 0.9 from 170 to 359, including an increase in errors from 40 to 156. Thus, improved top-1 accuracy does not establish improved confidence reliability.
+
+The error analysis identifies class concentration, shared shapes, object components, stylization, and ambiguous multi-object images as plausible failure factors. These explanations guide further investigation; the current evidence does not establish their internal causal mechanisms.
+
+\subsection{Limitations and future work}
+Conclusions are limited to one source domain, one training seed, and fixed partitions. No across-seed uncertainty or statistical significance is established. Domains contain different images and class supports, so accuracy differences do not isolate a matched-image style effect. Exact-byte deduplication does not remove all near-duplicates or rule out overlap with pretraining data. Fine-tuning uses fixed learning rates and budgets and updates only the final residual stage.
+
+Further evaluation requires multiple training seeds, alternative source domains, and controlled variations in fine-tuning depth and learning rate. Full probability outputs and representative validation data would enable calibration analysis. Reliable deployment additionally depends on preserving the class mapping and preprocessing and distinguishing model confidence from calibrated correctness probabilities.
+
+\clearpage
+\begin{thebibliography}{9}\raggedright
+\bibitem{officehome} H. Venkateswara, J. Eusebio, S. Chakraborty, and S. Panchanathan. ``Deep Hashing Network for Unsupervised Domain Adaptation.'' \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}, pp. 5018--5027, 2017. \url{https://openaccess.thecvf.com/content_cvpr_2017/html/Venkateswara_Deep_Hashing_Network_CVPR_2017_paper.html}. Official dataset: \url{https://www.hemanthdv.org/officeHomeDataset.html}.
+\bibitem{resnet} K. He, X. Zhang, S. Ren, and J. Sun. ``Deep Residual Learning for Image Recognition.'' \emph{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}, pp. 770--778, 2016. \url{https://openaccess.thecvf.com/content_cvpr_2016/html/He_Deep_Residual_Learning_CVPR_2016_paper.html}.
+\bibitem{yosinski} J. Yosinski, J. Clune, Y. Bengio, and H. Lipson. ``How transferable are features in deep neural networks?'' \emph{Advances in Neural Information Processing Systems}, vol. 27, 2014. \url{https://proceedings.neurips.cc/paper_files/paper/2014/hash/532a2f85b6977104bc93f8580abbb330-Abstract.html}.
+\bibitem{kornblith} S. Kornblith, J. Shlens, and Q. V. Le. ``Do Better ImageNet Models Transfer Better?'' \emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition}, pp. 2661--2671, 2019. \url{https://openaccess.thecvf.com/content_CVPR_2019/html/Kornblith_Do_Better_ImageNet_Models_Transfer_Better_CVPR_2019_paper.html}.
+\bibitem{domainbed} I. Gulrajani and D. Lopez-Paz. ``In Search of Lost Domain Generalization.'' \emph{International Conference on Learning Representations}, 2021. \url{https://openreview.net/pdf?id=lQdXeXDoWtI}.
+\bibitem{adamw} I. Loshchilov and F. Hutter. ``Decoupled Weight Decay Regularization.'' \emph{International Conference on Learning Representations}, 2019. \url{https://arxiv.org/abs/1711.05101}.
+\bibitem{sgdr} I. Loshchilov and F. Hutter. ``SGDR: Stochastic Gradient Descent with Warm Restarts.'' \emph{International Conference on Learning Representations}, 2017. \url{https://openreview.net/pdf?id=Skq89Scxx}.
+\bibitem{mirror} Flower Labs. \emph{Office-Home dataset mirror}, Hugging Face Datasets. Revision \texttt{2a083645e3177afbd91ba4fa2651238f8994d335}. \url{https://huggingface.co/datasets/flwrlabs/office-home/tree/2a083645e3177afbd91ba4fa2651238f8994d335}. Accessed October 5, 2026.
+\bibitem{torchvision} Torchvision contributors. \emph{ResNet model and pretrained-weight documentation}. \url{https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.resnet50.html}. Experiments use torchvision \texttt{0.26.0+cu130}, with \texttt{IMAGENET1K\_V1} weights for both backbones. Accessed October 5, 2026.
+\end{thebibliography}
+
+\clearpage
+\appendix
+\section{Member Contribution Table}
+Table~\ref{tab:contributions} summarizes the division of work across experimental design, data preparation, model implementation, evaluation, reproducibility, and manuscript preparation.
+
+\begin{center}
+\begingroup
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\linewidth}{p{4.1cm}p{2.1cm}X}
+\toprule
+Full name & Student ID & Contribution\\
+\midrule
+Nguyễn Tiến Dũng &23BA14068&Designed the experiments and comparison protocol; integrated the project components and final deliverables.\\
+Vũ Minh Châu &23BA14028&Implemented image preprocessing, training augmentation, and the data preparation pipeline.\\
+Nguyễn Minh Hiếu &23BA14105&Implemented the ResNet models, training configurations, linear probing, and partial fine-tuning procedures.\\
+Lê Đức Anh &23BA14005&Conducted model evaluation, compared domain-level results, and analyzed prediction errors.\\
+Hoàng Lê Anh Đức &23BA14057&Prepared and edited the report; synthesized the related work and organized citations and references.\\
+Nguyễn Ngọc Hiếu &23BA14109&Established dataset provenance and version tracking; implemented reproducibility checks and organized experiment artifacts.\\
+\bottomrule
+\end{tabularx}
+\endgroup
+\captionof{table}{Individual member contributions.}\label{tab:contributions}
+\end{center}
+
+\section{Reproducibility and Supplementary Materials}
+\subsection{Experimental records and independent checks}
+The supplementary records comprise training histories, configuration and environment metadata, the split manifest, class mapping, sixteen prediction tables, classification reports, and figures. Independent verification recomputed accuracy and macro-F1, checked test membership and class mappings, reconstructed source-validation checkpoint selection, and confirmed the reported source-to-target differences. Cross-entropy losses are retained from the original evaluations; top-1 prediction records do not contain the complete probability distributions required to recompute them.
+
+The quantitative figures were generated with Matplotlib from these records. Equal-domain means, paired correctness transitions, confidence-threshold summaries, and class-level counts are deterministic post-hoc analyses. The supplementary analysis script and source-file checksums support independent reproduction of those analyses without additional model fitting.
+
+\subsection{Dataset and run identifiers}
+The dataset mirror is pinned to revision \texttt{2a083645e3177afbd91ba4fa2651238f8994d335}. The protocol identifier is \texttt{source\_only\_v1}, and the recorded run is \texttt{run\_5765dc922429}. The split-manifest SHA-256 digest is
+\begin{center}
+\small\texttt{7a80ad97bd73c5ff9d42a8142e63683900a8233422f8b55d5f5f120c0dc63031}.
+\end{center}
+Each experiment identifier specifies the source domain, architecture, training mode, and seed, linking the corresponding history, predictions, and checkpoint metadata.
+
+\subsection{Supplementary model artifacts}
+The supplementary folder for large model artifacts is
+\url{https://drive.google.com/drive/folders/1BwltTDh_qRiF26FS5loaZozat-fKJAqY?usp=sharing}.
+The checkpoint format records the model state and class order. Selected checkpoints are associated with the source-validation criterion; recovery checkpoints additionally retain optimizer, scheduler, gradient-scaler, and random-generator states. Dataset images and large checkpoint files are distributed separately from the compact result records.
+
+\end{document}
