@@ -81,6 +81,18 @@ CHALLENGE_CHOICES = {
         "resnet50_finetune_last_block",
     ),
 }
+UPLOAD_SUGGESTION_CANDIDATES = (
+    "Laptop",
+    "Mug",
+    "Bike",
+    "Bottle",
+    "Chair",
+    "Keyboard",
+    "Monitor",
+    "Printer",
+    "Telephone",
+    "Webcam",
+)
 
 
 st.set_page_config(
@@ -235,9 +247,50 @@ def open_uploaded_image(uploaded_file: Any) -> tuple[Any | None, str | None, str
         return None, None, f"The uploaded file could not be read as an image: {error}"
 
 
+def render_upload_class_guidance(prefix: str, class_names: Sequence[str]) -> None:
+    """Explain the model's closed label set before a custom image is uploaded."""
+    supported = set(class_names)
+    suggestions = [
+        pretty_class(class_name)
+        for class_name in UPLOAD_SUGGESTION_CANDIDATES
+        if class_name in supported
+    ]
+    display_names = sorted(
+        (pretty_class(class_name) for class_name in class_names),
+        key=str.casefold,
+    )
+
+    st.markdown("**Upload your own image**")
+    st.caption(
+        "The model was trained to classify 65 Office-Home object classes. "
+        "For meaningful predictions, upload an image belonging to one of the supported classes."
+    )
+    if suggestions:
+        st.markdown(f"**Suggested examples:** {' · '.join(suggestions)}")
+
+    with st.expander(
+        "View all 65 supported classes",
+        icon=":material/category:",
+        key=f"{prefix}_supported_classes",
+    ):
+        columns = st.columns(4)
+        chunk_size = (len(display_names) + len(columns) - 1) // len(columns)
+        for index, column in enumerate(columns):
+            start = index * chunk_size
+            chunk = display_names[start : start + chunk_size]
+            with column:
+                st.markdown("\n".join(f"- {class_name}" for class_name in chunk))
+
+    st.caption(
+        "Note: Images outside the 65 trained classes will still receive a prediction "
+        "from the closest supported class."
+    )
+
+
 def image_picker(
     prefix: str,
     samples: Mapping[str, Mapping[str, SampleSpec]],
+    class_names: Sequence[str],
 ) -> tuple[Any | None, dict[str, str] | None, str | None]:
     source = st.segmented_control(
         "Image source",
@@ -276,6 +329,7 @@ def image_picker(
         fingerprint = f"sample:{sample.relative_path}:{sample.row_index}"
         return image, metadata, fingerprint
 
+    render_upload_class_guidance(prefix, class_names)
     uploaded = st.file_uploader(
         "Upload an image",
         type=["jpg", "jpeg", "png"],
@@ -453,7 +507,7 @@ def render_playground(
 ) -> None:
     st.header("Playground")
     st.caption("Choose one prepared Office-Home image or upload your own, then run all four trained configurations.")
-    image, metadata, fingerprint = image_picker("playground", samples)
+    image, metadata, fingerprint = image_picker("playground", samples, class_names)
     if image is None or fingerprint is None:
         return
 
@@ -657,7 +711,7 @@ def render_model_comparison(
 ) -> None:
     st.header("Model Comparison")
     st.caption("Run the same image through all four real checkpoints, then compare architecture and transfer-learning choices.")
-    image, metadata, fingerprint = image_picker("comparison", samples)
+    image, metadata, fingerprint = image_picker("comparison", samples, class_names)
     if image is None or fingerprint is None:
         return
     preview, action = st.columns((1, 1), gap="large")
