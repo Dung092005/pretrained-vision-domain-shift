@@ -180,6 +180,19 @@ python scripts/verify_results.py
 
 The script recomputes accuracy and macro-F1 from all 16 prediction files and checks the class mapping, test membership, domain differences, selected checkpoint epochs, and saved data partitions. It does not retrain the models or download the dataset.
 
+## Team Members
+
+We worked on this project together, but each member focused more on a different part of the pipeline.
+
+| Member | Student ID | GitHub | Contribution |
+|---|---|---|---|
+| Nguyễn Tiến Dũng | 23BA14068 | [Dung092005](https://github.com/Dung092005) | Team leader. Mainly worked on the project direction, experiment setup, model comparison, and putting all parts together. |
+| Nguyễn Ngọc Hiếu | 23BA14109 | [ngochieu1762005](https://github.com/ngochieu1762005) | Focused on preparing and checking the dataset, splitting the data, reproducibility, and repository setup. |
+| Vũ Minh Châu | 23BA14028 | [minmiwn](https://github.com/minmiwn) | Focused on preprocessing, augmentation, and the data-loading pipeline. |
+| Nguyễn Minh Hiếu | 23BA14105 | [MinhHieu1601](https://github.com/MinhHieu1601) | Focused on setting up and training ResNet18/ResNet50 with the different transfer-learning strategies. |
+| Lê Đức Anh | 23BA14005 | [leducanh21122003](https://github.com/leducanh21122003) | Focused on evaluating the models, comparing results across domains, and making result figures. |
+| Hoàng Lê Anh Đức | 23BA14057 | [duchla2005](https://github.com/duchla2005) | Focused on checking results, documentation, and preparing the final report. |
+
 ## Limitations
 
 - The experiment uses one source domain: Real-World.
